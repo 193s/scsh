@@ -9,7 +9,8 @@ val logger = ProcessLogger (
 )
 
 // command execution
-def system(str: String) = Process(str) ! logger
+def system(cmd: Seq[String]) = Process(cmd) ! logger
+def parse(cmd: String): List[String] = cmd.split(' ').map(_.trim).toList
 
 // read a line with prompt
 def readLine(prompt: String) = {
@@ -17,21 +18,28 @@ def readLine(prompt: String) = {
   val ret = StdIn.readLine()
   ret
 }
-
 val prompt = AnsiColor.RED + "$ " + AnsiColor.RESET
 
 while (true) {
-  readLine(prompt) match {
-    case "" => // do nothing
-    case "exit" =>
+  val input = readLine(prompt)
+  parse(input) match {
+    case Nil => // do nothing
+
+    // shell built-in commands
+    case "exit" :: xs =>
       println("Program will exit...")
       sys.exit(0)
 
+    case "cd" :: xs =>
+      println("Not implemented yet :(")
+
     case in =>
-      try system(in)
+      // result (0 or else)
+      val result = try system(in)
       catch {
         case e: java.io.IOException =>
-          println(s"permission denied: $in")
+          println(s"permission denied: $input")
+          1
       }
   }
 }
