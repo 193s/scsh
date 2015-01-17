@@ -1,5 +1,6 @@
 #!/usr/bin/env scala
 import java.io.File
+import java.util.regex.Matcher
 import scala.io.StdIn
 import scala.io.Source
 import scala.io.AnsiColor
@@ -16,12 +17,12 @@ var pos = new File(".")
 
 // command execution
 def system(cmd: Seq[String]) = Process(cmd, pos) ! logger
-def parse(cmd: String) =
+def parse(cmd: String): List[String] =
   """\$\{([a-zA-Z_]+)\}""".r
-  .replaceAllIn(cmd, _.group(1) match { case e => env.get(e) })
-  .replace("\\ ", "$space")
+  .replaceAllIn(cmd, m => Matcher.quoteReplacement(env.get(m.group(1))))
+  .replace("\\ ", "\\$space")
   .split(' ')
-  .map ( _.trim.replace("$space", " ") )
+  .map { _.trim.replace("\\$space", " ") }
   .toList
 
 def getFile(file: File)(name: String) = new File(file.toURI.resolve(name))
@@ -34,8 +35,9 @@ def readLine(prompt: String) = {
 class Env {
   import scala.io.AnsiColor._
   private val p = RED + "$ " + RESET
-  val values = mutable.Map[String, String]("prompt" -> p)
-  def get(x: String) = Properties.envOrElse(x, values.getOrElse(x, ""))
+  val values = mutable.Map[String, String]("prompt" -> p, "test" -> "hello")
+  def envOrElse(key: String, default: => String) = Properties.envOrElse(key, default)
+  def get(x: String) = envOrElse(x, values.getOrElse(x, ""))
 }
 
 
