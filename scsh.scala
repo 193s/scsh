@@ -80,6 +80,13 @@ def run(input: String): Boolean =
       sys.exit(0)
       true
 
+    // assignment
+    case name :: "=" :: value :: _ =>
+      println(s"+ $name -> $value")
+      env.values += name -> value
+      true
+
+
     case "cd" :: Nil => true // do nothing
     case "cd" :: x :: _ =>
       val dest = getFile(pos)(x)
