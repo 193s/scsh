@@ -10,17 +10,9 @@ import scala.sys.process.{Process, ProcessLogger}
 
 // ============================================ //
 
-val logger = ProcessLogger (
-  out => System.out.println(out),
-  err => System.err.println(err)
-)
-var pos = new File(".")
-
-// command execution
-def system(cmd: Seq[String]) = Process(cmd, pos) ! logger
 
 
-Runner.run()
+Runner.main()
 
 
 // ============================================ //
@@ -51,12 +43,12 @@ object Runner {
 
       case "cd" :: Nil => true // do nothing
       case "cd" :: x :: _ =>
-        val dest = MyUtil.getFile(pos)(x)
+        val dest = MyUtil.getFile(env.pos)(x)
         if (!dest.isDirectory) {
           println("cd: no such directory")
           false
         } else {
-          pos = dest
+          env.pos = dest
           true
         }
 
@@ -79,7 +71,7 @@ object Runner {
 
       case in =>
         // result (0 or else)
-        val result = try system(alias.aliased(in))
+        val result = try env.system(alias.aliased(in))
         catch {
           case e: java.io.IOException =>
             println(s"permission denied: $input")
@@ -88,7 +80,7 @@ object Runner {
         result == 0
     }
 
-  def run() {
+  def main() {
     conf.eval()
 
     while (true) {
@@ -96,6 +88,7 @@ object Runner {
       eval(input)
     }
   }
+
   def parse(cmd: String): List[String] =
     """\$\{([a-zA-Z_]+)\}""".r
     .replaceAllIn(cmd, m => Matcher.quoteReplacement(env.get(m.group(1))))
@@ -126,6 +119,15 @@ class Env {
   val values = mutable.Map[String, String]("prompt" -> p, "test" -> "hello")
   def envOrElse(key: String, default: => String) = Properties.envOrElse(key, default)
   def get(x: String) = envOrElse(x, values.getOrElse(x, ""))
+
+  val logger = ProcessLogger (
+    out => System.out.println(out),
+    err => System.err.println(err)
+  )
+  var pos = new File(".")
+
+  // command execution
+  def system(cmd: Seq[String]) = Process(cmd, pos) ! logger
 }
 
 
