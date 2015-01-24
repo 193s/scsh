@@ -10,10 +10,7 @@ import scala.sys.process.{Process, ProcessLogger}
 
 // ============================================ //
 
-
-
 Runner.main()
-
 
 // ============================================ //
 
@@ -40,16 +37,20 @@ object Runner {
         env.values += name -> value
         true
 
+      case "env" :: Nil =>
+        println(env.values.map(p => s"${p._1} -> ${p._2}").mkString("\n"))
+        true
+
 
       case "cd" :: Nil => true // do nothing
       case "cd" :: x :: _ =>
-        val dest = MyUtil.getFile(env.pos)(x)
-        if (!dest.isDirectory) {
+        val dest = env.resolve(x)
+        if (dest.isDirectory) {
+          env.cd(x)
+          true
+        } else {
           println("cd: no such directory")
           false
-        } else {
-          env.pos = dest
-          true
         }
 
       case "alias" :: Nil =>
@@ -70,10 +71,12 @@ object Runner {
         }
 
       case in =>
+        import java.io.IOException
         // result (0 or else)
         val result = try env.system(alias.aliased(in))
         catch {
-          case e: java.io.IOException =>
+          case e: IOException =>
+            // println(e.getMessage)
             println(s"permission denied: $input")
             1
         }
@@ -116,15 +119,26 @@ object MyUtil {
 class Env {
   import scala.io.AnsiColor._
   private val p = RED + "$ " + RESET
-  val values = mutable.Map[String, String]("prompt" -> p, "test" -> "hello")
+  val values = mutable.Map[String, String]("prompt" -> p, "err_color" -> "x", "test" -> "hello")
   def envOrElse(key: String, default: => String) = Properties.envOrElse(key, default)
   def get(x: String) = envOrElse(x, values.getOrElse(x, ""))
 
   val logger = ProcessLogger (
     out => System.out.println(out),
-    err => System.err.println(err)
+    err => System.err.println (
+      if (values("err_color") == "o") RED + err + RESET
+      else err
+    )
   )
   var pos = new File(".")
+
+  def resolve(name: String) = MyUtil.getFile(pos)(name)
+
+  def cd(name: String): Unit = {
+    val dest = resolve(name)
+    require(dest.isDirectory)
+    pos = dest
+  }
 
   // command execution
   def system(cmd: Seq[String]) = Process(cmd, pos) ! logger
