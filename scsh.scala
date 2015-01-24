@@ -57,18 +57,17 @@ object Runner {
         println(alias.table.mkString("\n"))
         true
 
-      case "alias" :: x :: _ =>
-        if (!x.contains('=')) {
-          if (alias.table.contains(x)) {
-            println(s"$x=${alias.table(x)}")
-            true
-          } else false
-        } else {
-          val p = alias.splitByEq(x)
-          println(s"alias: ${p._1} -> ${p._2}")
-          alias.table += p
+      case "alias" :: x :: Nil =>
+        if (alias.table.contains(x)) {
+          println(s"$x=${alias.table(x)}")
           true
-        }
+        } else false
+
+
+      case "alias" :: x :: "=" :: value :: Nil =>
+        println(s"alias: $x -> $value")
+        alias.table += x -> value
+        true
 
       case in =>
         import java.io.IOException
@@ -102,9 +101,14 @@ object Runner {
 
 
   // Config
-  class Conf(file: String) {
+  class Conf(file: File) {
+    def this(file: String) = this(new File(file))
     def eval(): Unit =
-      for (l <- Source.fromFile(file).getLines) Runner.eval(l)
+      try for (l <- Source.fromFile(file).getLines) Runner.eval(l)
+      catch {
+        case e: java.io.FileNotFoundException =>
+          System.err.println(s"scsh: no such file or directory: ${file.getPath}")
+      }
   }
 }
 

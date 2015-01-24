@@ -1,1 +1,1 @@
-alias ls=gls\ -C\ --color
+alias ls = ls\ -C
