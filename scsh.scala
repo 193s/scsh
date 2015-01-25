@@ -37,22 +37,33 @@ object Runner {
         env.values += name -> value
         true
 
+      // env - This prints all the local variables
       case "env" :: Nil =>
         println(env.values.map(p => s"${p._1} -> ${p._2}").mkString("\n"))
         true
 
 
-      case "cd" :: Nil => true // do nothing
-      case "cd" :: x :: _ =>
-        val dest = env.resolve(x)
-        if (dest.isDirectory) {
-          env.cd(x)
+      // cd
+      case "cd" :: tail => tail match {
+        // go $HOME
+        case Nil =>
+          var dest = env.envOrElse("HOME", ".")
+          env.cd(dest)
           true
-        } else {
-          println("cd: no such directory")
-          false
+
+        case x :: _ =>
+          val dest = env.resolve(x)
+          if (dest.isDirectory) {
+            env.cd(x)
+            true
+          } else {
+            println("cd: no such directory")
+            false
+          }
         }
 
+
+      // alias
       case "alias" :: Nil =>
         println(alias.table.mkString("\n"))
         true
@@ -69,6 +80,7 @@ object Runner {
         alias.table += x -> value
         true
 
+      // run
       case in =>
         import java.io.IOException
         // result (0 or else)
