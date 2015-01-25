@@ -26,21 +26,47 @@ object Runner {
       case Nil => true // do nothing
 
       // shell built-in commands
-      case "exit" :: xs =>
-        println("Program will exit...")
-        sys.exit(0)
-        true
+      case "exit" :: tail => tail match {
+        case Nil =>
+          println("Program will exit...")
+          sys.exit(0)
+          true
+
+        case x :: Nil =>
+          println("Program will exit...")
+          sys.exit (
+            if (x == '0') 0
+            else 1
+          )
+          true
+
+        case _ =>
+          println("exit: too many arguments")
+          false
+      }
 
       // assignment
-      case name :: "=" :: value :: _ =>
-        println(s"+ $name -> $value")
-        env.values += name -> value
-        true
+      case name :: "=" :: tail => tail match {
+        case value :: Nil =>
+          println(s"+ $name -> $value")
+          env.values += name -> value
+          true
 
-      // env - This prints all the local variables
-      case "env" :: Nil =>
-        println(env.values.map(p => s"${p._1} -> ${p._2}").mkString("\n"))
-        true
+        case _ =>
+          println("bad assignment")
+          false
+      }
+
+      // set - This prints all the local variables
+      case "set" :: tail => tail match {
+        case Nil =>
+          println(env.values.map(p => s"${p._1} -> ${p._2}").mkString("\n"))
+          true
+
+        case _ =>
+          println("env: too many arguments")
+          false
+      }
 
 
       // cd
@@ -51,7 +77,7 @@ object Runner {
           env.cd(dest)
           true
 
-        case x :: _ =>
+        case x :: Nil =>
           val dest = env.resolve(x)
           if (dest.isDirectory) {
             env.cd(x)
@@ -60,25 +86,36 @@ object Runner {
             println("cd: no such directory")
             false
           }
-        }
+
+        case _ =>
+          println("cd: too many arguments")
+          false
+      }
 
 
       // alias
-      case "alias" :: Nil =>
-        println(alias.table.mkString("\n"))
-        true
-
-      case "alias" :: x :: Nil =>
-        if (alias.table.contains(x)) {
-          println(s"$x=${alias.table(x)}")
+      case "alias" :: tail => tail match {
+        case Nil =>
+          println(alias.table.mkString("\n"))
           true
-        } else false
+
+        case x :: Nil =>
+          if (alias.table.contains(x)) {
+            println(s"$x=${alias.table(x)}")
+            true
+          } else false
+
+        case x :: "=" :: value :: Nil =>
+          println(s"alias: $x -> $value")
+          alias.table += x -> value
+          true
+
+        case _ =>
+          println("alias: bad assignment")
+          false
+      }
 
 
-      case "alias" :: x :: "=" :: value :: Nil =>
-        println(s"alias: $x -> $value")
-        alias.table += x -> value
-        true
 
       // run
       case in =>
