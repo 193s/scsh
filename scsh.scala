@@ -144,7 +144,7 @@ object Runner {
     """\$\{([a-zA-Z_]+)\}""".r
     .replaceAllIn(cmd, m => Matcher.quoteReplacement(env.get(m.group(1))))
     .replace("\\ ", "\\$space")
-    .split(' ')
+    .split(" +")
     .map { _.trim.replace("\\$space", " ") }
     .toList
 
